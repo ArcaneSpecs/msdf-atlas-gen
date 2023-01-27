@@ -202,105 +202,177 @@
 ##endif()
 
 # Minimum version to run the script
+##cmake_minimum_required(VERSION 3.16.0)
+##
+### Setting build type
+##set(DEFAULT_BUILD_TYPE "Debug")
+##if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+##  message(STATUS "Setting build type to '${DEFAULT_BUILD_TYPE}' as none was specified.")
+##  set(CMAKE_BUILD_TYPE "${DEFAULT_BUILD_TYPE}" CACHE
+##      STRING "Choose the type of build." FORCE)
+##  # Set the possible values of build type for cmake-gui
+##  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
+##    "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+##endif()
+##
+### Setting up the project name and version
+##project(Msdf-atlas-gen
+##        VERSION 2.26.0
+##        DESCRIPTION ""
+##        HOMEPAGE_URL ""
+##        LANGUAGES CXX)
+##
+### Setting the install prefix
+##set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR})
+##
+### First for the generic no-config case (e.g. with mingw)
+##set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
+##set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
+##set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+##set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+##set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+### Second, for multi-config builds (e.g. msvc)
+##foreach(OUTPUT_CONFIG ${CMAKE_CONFIGURATION_TYPES})
+##    string( TOUPPER ${OUTPUT_CONFIG} OUTPUT_CONFIG )
+##    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUT_CONFIG} ${CMAKE_BINARY_DIR}/bin)
+##    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUT_CONFIG} ${CMAKE_BINARY_DIR}/lib)
+##    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUT_CONFIG} ${CMAKE_BINARY_DIR}/lib)
+##endforeach(OUTPUT_CONFIG CMAKE_CONFIGURATION_TYPES)
+##
+### Setting project options
+##option(MSDF_ATLAS_GEN_MSVC_DYNAMIC_LINKED_RUNTIME "Uses MSVC dynamic linked runtime" OFF)
+##
+### Include dirs
+##set(MSDF_ATLAS_GEN_INCLUDE_DIRS
+##    ${CMAKE_CURRENT_SOURCE_DIR}
+##)
+##
+### Header files
+##set(MSDF_ATLAS_GEN_HEADERS
+##
+##)
+##
+### Source files
+##set(MSDF_ATLAS_GEN_SOURCES
+##    "msdf-atlas-gen/Charset.cpp"
+##    "msdf-atlas-gen/FontGeometry.cpp"
+##    "msdf-atlas-gen/GlyphGeometry.cpp"
+##    "msdf-atlas-gen/RectanglePacker.cpp"
+##    "msdf-atlas-gen/TightAtlasPacker.cpp"
+##    "msdf-atlas-gen/Workload.cpp"
+##    "msdf-atlas-gen/artery-font-export.cpp"
+##    "msdf-atlas-gen/bitmap-blit.cpp"
+##    "msdf-atlas-gen/charset-parser.cpp"
+##    "msdf-atlas-gen/csv-export.cpp"
+##    "msdf-atlas-gen/glyph-generators.cpp"
+##    "msdf-atlas-gen/image-encode.cpp"
+##    "msdf-atlas-gen/json-export.cpp"
+##    "msdf-atlas-gen/main.cpp"
+##    "msdf-atlas-gen/shadron-preview-generator.cpp"
+##    "msdf-atlas-gen/size-selectors.cpp"
+##    "msdf-atlas-gen/utf8.cpp"
+##)
+##
+### MSDF_ATLAS_GEN library
+##add_library(msdf_atlas_gen ${MSDF_ATLAS_GEN_SOURCES})
+##
+### Check for MSVC
+##if(MSVC)
+##    # Check for dynamic runtime
+##    if(MSDF_ATLAS_GEN_MSVC_DYNAMIC_LINKED_RUNTIME)
+##        set_property(TARGET msdf_atlas_gen PROPERTY
+##            MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL"
+##        )
+##    else()
+##        set_property(TARGET msdf_atlas_gen PROPERTY
+##            MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+##        )
+##    endif()
+##endif()
+##
+### MSDF_ATLAS_GEN include dirs
+##target_include_directories(msdf_atlas_gen
+##PUBLIC
+##    ${MSDF_ATLAS_GEN_INCLUDE_DIRS}
+##)
+##
+##target_link_libraries(msdf_atlas_gen 
+##PUBLIC
+##    msdfgen
+##)
+##
+### Setting the install command to the app
+##install(TARGETS msdf_atlas_gen RUNTIME DESTINATION bin)
+##install(TARGETS msdf_atlas_gen LIBRARY DESTINATION lib)
+
 cmake_minimum_required(VERSION 3.16.0)
 
-# Setting build type
-set(DEFAULT_BUILD_TYPE "Debug")
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  message(STATUS "Setting build type to '${DEFAULT_BUILD_TYPE}' as none was specified.")
-  set(CMAKE_BUILD_TYPE "${DEFAULT_BUILD_TYPE}" CACHE
-      STRING "Choose the type of build." FORCE)
-  # Set the possible values of build type for cmake-gui
-  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
-    "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+project(msdf-atlas-gen VERSION 1.2 LANGUAGES CXX)
+option(MSDF_ATLAS_GEN_BUILD_STANDALONE "Build the msdf-atlas-gen standalone executable" ON)
+set(MSDFGEN_USE_OPENMP OFF CACHE INTERNAL "Build with OpenMP support for multithreaded code (disabled for atlas gen)" FORCE)
+set(MSDFGEN_USE_CPP11 ON CACHE INTERNAL "Build with C++11 enabled (always enabled for atlas gen)" FORCE)
+set(MSDFGEN_INSTALL OFF CACHE BOOL "Generate installation target for msdfgen")
+add_subdirectory(msdfgen)
+
+find_package(Threads REQUIRED)
+
+file(GLOB_RECURSE msdf-atlas-gen_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+    "msdf-atlas-gen/*.h"
+    "msdf-atlas-gen/*.hpp"
+)
+
+file(GLOB_RECURSE msdf-atlas-gen_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+    "msdf-atlas-gen/*.cpp"
+)
+
+# msdf-atlas-gen library
+add_library(msdf-atlas-gen ${msdf-atlas-gen_SOURCES} ${msdf-atlas-gen_HEADERS})
+add_library(msdf-atlas-gen::msdf-atlas-gen ALIAS msdf-atlas-gen)
+set_target_properties(msdf-atlas-gen PROPERTIES PUBLIC_HEADER "${msdf-atlas-gen_HEADERS}")
+target_include_directories(msdf-atlas-gen
+INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/msdfgen/include # for lodepng.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/artery-font-format
+)
+
+
+if(BUILD_SHARED_LIBS AND MSVC)
+    target_compile_definitions(msdf-atlas-gen PUBLIC _CRT_SECURE_NO_WARNINGS)
+    target_compile_definitions(msdf-atlas-gen PRIVATE "MSDF_ATLAS_PUBLIC=__declspec(dllexport)")
+    target_compile_definitions(msdf-atlas-gen INTERFACE "MSDF_ATLAS_PUBLIC=__declspec(dllimport)")
+else()
+    target_compile_definitions(msdf-atlas-gen PUBLIC MSDF_ATLAS_PUBLIC=)
 endif()
 
-# Setting up the project name and version
-project(Msdf-atlas-gen
-        VERSION 2.26.0
-        DESCRIPTION ""
-        HOMEPAGE_URL ""
-        LANGUAGES CXX)
 
-# Setting the install prefix
-set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR})
+target_compile_features(msdf-atlas-gen PUBLIC cxx_std_11)
+target_link_libraries(msdf-atlas-gen PUBLIC 
+    Threads::Threads 
+    msdfgen::msdfgen 
+    msdfgen::msdfgen-ext)
 
-# First for the generic no-config case (e.g. with mingw)
-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
-set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-# Second, for multi-config builds (e.g. msvc)
-foreach(OUTPUT_CONFIG ${CMAKE_CONFIGURATION_TYPES})
-    string( TOUPPER ${OUTPUT_CONFIG} OUTPUT_CONFIG )
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUT_CONFIG} ${CMAKE_BINARY_DIR}/bin)
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUT_CONFIG} ${CMAKE_BINARY_DIR}/lib)
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUT_CONFIG} ${CMAKE_BINARY_DIR}/lib)
-endforeach(OUTPUT_CONFIG CMAKE_CONFIGURATION_TYPES)
-
-# Setting project options
-option(MSDF_ATLAS_GEN_MSVC_DYNAMIC_LINKED_RUNTIME "Uses MSVC dynamic linked runtime" OFF)
-
-# Include dirs
-set(MSDF_ATLAS_GEN_INCLUDE_DIRS
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-# Header files
-set(MSDF_ATLAS_GEN_HEADERS
-
-)
-
-# Source files
-set(MSDF_ATLAS_GEN_SOURCES
-    "msdf-atlas-gen/Charset.cpp"
-    "msdf-atlas-gen/FontGeometry.cpp"
-    "msdf-atlas-gen/GlyphGeometry.cpp"
-    "msdf-atlas-gen/RectanglePacker.cpp"
-    "msdf-atlas-gen/TightAtlasPacker.cpp"
-    "msdf-atlas-gen/Workload.cpp"
-    "msdf-atlas-gen/artery-font-export.cpp"
-    "msdf-atlas-gen/bitmap-blit.cpp"
-    "msdf-atlas-gen/charset-parser.cpp"
-    "msdf-atlas-gen/csv-export.cpp"
-    "msdf-atlas-gen/glyph-generators.cpp"
-    "msdf-atlas-gen/image-encode.cpp"
-    "msdf-atlas-gen/json-export.cpp"
-    "msdf-atlas-gen/main.cpp"
-    "msdf-atlas-gen/shadron-preview-generator.cpp"
-    "msdf-atlas-gen/size-selectors.cpp"
-    "msdf-atlas-gen/utf8.cpp"
-)
-
-# MSDF_ATLAS_GEN library
-add_library(msdf_atlas_gen ${MSDF_ATLAS_GEN_SOURCES})
-
-# Check for MSVC
-if(MSVC)
-    # Check for dynamic runtime
-    if(MSDF_ATLAS_GEN_MSVC_DYNAMIC_LINKED_RUNTIME)
-        set_property(TARGET msdf_atlas_gen PROPERTY
-            MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL"
-        )
-    else()
-        set_property(TARGET msdf_atlas_gen PROPERTY
-            MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-        )
-    endif()
+# TODO make these public in msdfgen so that this doesn't have to be repeated here
+if(FREETYPE_WITH_PNG)
+    find_package(ZLIB REQUIRED)
+    find_package(PNG REQUIRED)
+    target_link_libraries(msdf-atlas-gen PUBLIC ZLIB::ZLIB PNG::PNG)
+endif()
+if(FREETYPE_WITH_HARFBUZZ)
+    # No FindHarfBuzz.cmake available so falling back to CMAKE_LIBRARY_PATH
+    find_library(FREETYPE_HARFBUZZ_LIB "harfbuzz")
+    target_link_libraries(msdf-atlas-gen PUBLIC "${FREETYPE_HARFBUZZ_LIB}")
 endif()
 
-# MSDF_ATLAS_GEN include dirs
-target_include_directories(msdf_atlas_gen
-PUBLIC
-    ${MSDF_ATLAS_GEN_INCLUDE_DIRS}
-)
+# msdf-atlas-gen standalone executable
+if(MSDF_ATLAS_GEN_BUILD_STANDALONE)
+    add_executable(msdf-atlas-gen-standalone msdf-atlas-gen/main.cpp)
+    set_target_properties(msdf-atlas-gen-standalone PROPERTIES ARCHIVE_OUTPUT_DIRECTORY archive OUTPUT_NAME msdf-atlas-gen)
+    target_compile_definitions(msdf-atlas-gen-standalone PUBLIC MSDF_ATLAS_STANDALONE)
+    target_compile_features(msdf-atlas-gen-standalone PUBLIC cxx_std_11)
+    target_link_libraries(msdf-atlas-gen-standalone PUBLIC msdf-atlas-gen::msdf-atlas-gen)
+endif()
 
-target_link_libraries(msdf_atlas_gen 
-PUBLIC
-    msdfgen
-)
-
-# Setting the install command to the app
-install(TARGETS msdf_atlas_gen RUNTIME DESTINATION bin)
-install(TARGETS msdf_atlas_gen LIBRARY DESTINATION lib)
+install(TARGETS msdf-atlas-gen RUNTIME DESTINATION bin)
+install(TARGETS msdf-atlas-gen LIBRARY DESTINATION lib)
