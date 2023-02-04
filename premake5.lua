@@ -1,13 +1,10 @@
-include "msdfgen"
-
 project "msdf-atlas-gen"
 	kind "StaticLib"
 	language "C++"
 	cppdialect "C++17"
-    staticruntime "On"
+    staticruntime "on"
+	warnings "off"
 
-    targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
-    objdir ("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}")
 	files
 	{
 		"msdf-atlas-gen/**.h",
@@ -15,21 +12,48 @@ project "msdf-atlas-gen"
     	"msdf-atlas-gen/**.cpp"
 	}
 
+
+	files
+	{
+		"msdfgen/core/**.h",
+		"msdfgen/core/**.hpp",
+		"msdfgen/core/**.cpp",
+		"msdfgen/ext/**.h",
+		"msdfgen/ext/**.hpp",
+		"msdfgen/ext/**.cpp",
+		"msdfgen/lib/**.cpp",
+		"msdfgen/include/**.h"
+	}
+
 	includedirs
 	{
 		"msdf-atlas-gen",
+		"msdfgen/include",
 		"msdfgen",
-		"msdfgen/include"
+		"msdfgen/include",
+		"../freetype/include"
 	}
 
 	defines
 	{
-		"_CRT_SECURE_NO_WARNINGS"
+		"_CRT_SECURE_NO_WARNINGS",
+		"MSDFGEN_USE_CPP11"
 	}
 
 	links
 	{
-		"msdfgen"
+		"freetype"
+	}
+	
+	-- links
+	-- {
+	-- 	"msdfgen",
+	-- 	"pthread"
+	-- }
+
+	removefiles
+	{
+		"msdf-atlas-gen/main.cpp"
 	}
 
 	filter "system:windows"
@@ -43,7 +67,7 @@ project "msdf-atlas-gen"
 		runtime "Release"
 		optimize "on"
 
-	filter "configurations:Dist"
+	filter "configurations:Production"
 		runtime "Release"
 		optimize "on"
         symbols "off"
